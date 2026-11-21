@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
@@ -71,8 +73,12 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         try {
-            jdbcTemplate.execute("INSERT IGNORE INTO _schema_patch_version (patch_name) VALUES ('v1_schema_constraints')");
-        } catch (Exception ignored) {}
+            jdbcTemplate.execute("INSERT INTO _schema_patch_version (patch_name) VALUES ('v1_schema_constraints') ON DUPLICATE KEY UPDATE patch_name = patch_name");
+        } catch (Exception e) {
+            try {
+                jdbcTemplate.execute("INSERT INTO _schema_patch_version (patch_name) VALUES ('v1_schema_constraints') ON CONFLICT DO NOTHING");
+            } catch (Exception ignored) {}
+        }
     }
 
     private void seedDepartments() {
