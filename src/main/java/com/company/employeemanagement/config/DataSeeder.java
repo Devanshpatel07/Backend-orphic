@@ -10,7 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -26,8 +25,10 @@ public class DataSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+    // Intentionally NOT @Transactional: on PostgreSQL a single failed statement
+    // (e.g. MySQL-only "MODIFY COLUMN") aborts the whole transaction, which would
+    // break the seeding below. Each statement / repository call runs on its own.
     @Override
-    @Transactional
     public void run(String... args) {
         fixSchemaConstraints();
         seedDepartments();

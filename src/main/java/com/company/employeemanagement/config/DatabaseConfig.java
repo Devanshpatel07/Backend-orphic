@@ -2,7 +2,6 @@ package com.company.employeemanagement.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -33,29 +32,26 @@ public class DatabaseConfig {
         public String dialect;
     }
 
+    /**
+     * Builds the DataSource directly from the resolved DB info.
+     * NOTE: do not expose a DataSourceProperties bean here — Spring re-binds
+     * "spring.datasource.*" onto it after creation, which would overwrite the
+     * resolved URL/driver (e.g. a raw postgres:// URL with the MySQL driver).
+     */
     @Bean
     @Primary
-    public DataSourceProperties dataSourceProperties() {
+    @ConfigurationProperties("spring.datasource.hikari")
+    public HikariDataSource dataSource() {
         ResolvedDbInfo info = resolveDbInfo();
         log.info("Initialized Database Configuration - Driver: [{}], User: [{}], Target: [{}]",
                 info.driverClassName, info.username, maskJdbcUrl(info.jdbcUrl));
 
-        DataSourceProperties properties = new DataSourceProperties();
-        properties.setUrl(info.jdbcUrl);
-        properties.setUsername(info.username);
-        properties.setPassword(info.password);
-        properties.setDriverClassName(info.driverClassName);
-        return properties;
-    }
-
-    @Bean
-    @Primary
-    @ConfigurationProperties("spring.datasource.hikari")
-    public HikariDataSource dataSource(DataSourceProperties properties) {
-        HikariDataSource ds = properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
-        if (ds.getConnectionTimeout() < 30000) {
-            ds.setConnectionTimeout(30000);
-        }
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl(info.jdbcUrl);
+        ds.setUsername(info.username);
+        ds.setPassword(info.password);
+        ds.setDriverClassName(info.driverClassName);
+        ds.setConnectionTimeout(30000);
         return ds;
     }
 
